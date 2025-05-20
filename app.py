@@ -10,7 +10,7 @@ Original file is located at
 from google.colab import files
 uploaded = files.upload()
 
-!pip install streamlit pyngrok --quiet
+#!pip install streamlit pyngrok --quiet
 
 # app.py
 
@@ -34,7 +34,6 @@ print(df)
 
 st.title("Customer Segmentation with Hierarchical Clustering and PCA")
 
-# Assume df is already loaded in your environment
 
 # Drop irrelevant columns
 drop_cols = ['ID', 'Dt_Customer', 'AcceptedCmp1', 'AcceptedCmp2', 'AcceptedCmp3',
@@ -70,7 +69,6 @@ scaled_features = scaler.fit_transform(df_features)
 st.write("### Features after scaling")
 st.dataframe(pd.DataFrame(scaled_features, columns=features).head())
 
-# Apply PCA to reduce dimensions to 2 for visualization
 pca = PCA(n_components=2, random_state=42)
 pca_features = pca.fit_transform(scaled_features)
 
@@ -83,10 +81,9 @@ plt.title('PCA Scatter Plot (2 Components)')
 st.pyplot(plt.gcf())
 plt.clf()
 
-# Perform hierarchical clustering on scaled data (not PCA)
 linked = linkage(scaled_features, method='ward')
 
-# Plot dendrogram (truncated for clarity)
+# Plot dendrogram 
 plt.figure(figsize=(10,5))
 dendrogram(linked, truncate_mode='level', p=5)
 plt.title('Hierarchical Clustering Dendrogram (truncated)')
