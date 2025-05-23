@@ -1,0 +1,267 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyPv2fygrEvpH9zWtYgXR32E",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/Pri12-3/sigma_task/blob/main/Untitled2.py\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "7nAy0X7pLAlG",
+        "outputId": "23946685-048a-47aa-8e1f-b912b72eb3c8"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "\u001b[2K     \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m44.3/44.3 kB\u001b[0m \u001b[31m1.4 MB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n",
+            "\u001b[2K   \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m9.9/9.9 MB\u001b[0m \u001b[31m44.7 MB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n",
+            "\u001b[2K   \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m6.9/6.9 MB\u001b[0m \u001b[31m83.8 MB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n",
+            "\u001b[2K   \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m79.1/79.1 kB\u001b[0m \u001b[31m4.6 MB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n",
+            "\u001b[?25h"
+          ]
+        }
+      ],
+      "source": [
+        "#Install dependencies\n",
+        "!pip install streamlit pyngrok --quiet"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Streamlit app code to app.py\n",
+        "app_code = '''\n",
+        "import streamlit as st\n",
+        "import pandas as pd\n",
+        "import numpy as np\n",
+        "import matplotlib.pyplot as plt\n",
+        "import seaborn as sns\n",
+        "\n",
+        "from sklearn.preprocessing import StandardScaler\n",
+        "from scipy.cluster.hierarchy import linkage, dendrogram, fcluster\n",
+        "from sklearn.decomposition import PCA\n",
+        "import streamlit as st\n",
+        "\n",
+        "# Title\n",
+        "st.set_page_config(\n",
+        "    page_title=\"Customer Segmentation App\",\n",
+        "    page_icon=\"**🎫**\",\n",
+        "    layout=\"wide\",\n",
+        "    initial_sidebar_state=\"expanded\"\n",
+        ")\n",
+        "\n",
+        "# css\n",
+        "st.markdown(\n",
+        "    \"\"\"\n",
+        "    <style>\n",
+        "    .main {\n",
+        "        background-color: #0b1a2f;\n",
+        "        color: #cbd5e1;\n",
+        "    }\n",
+        "    .css-1d391kg {\n",
+        "        background-color: #0b1a2f;  /* sidebar background */\n",
+        "    }\n",
+        "\n",
+        "    </style>\n",
+        "    \"\"\",\n",
+        "    unsafe_allow_html=True\n",
+        ")\n",
+        "\n",
+        "\n",
+        "st.title(\"Customer Segmentation using Hierarchical Clustering\")\n",
+        "\n",
+        "uploaded_file = st.file_uploader(\"Upload your dataset (CSV)\", type=[\"csv\"])\n",
+        "if uploaded_file is not None:\n",
+        "    df = pd.read_csv(uploaded_file)\n",
+        "\n",
+        "    st.subheader(\"Raw Dataset\")\n",
+        "    st.write(\"Dataset shape:\", df.shape)\n",
+        "    st.dataframe(df.head())\n",
+        "\n",
+        "    st.title(\"Customer Segmentation with Hierarchical Clustering and PCA\")\n",
+        "\n",
+        "    drop_cols = ['ID', 'Dt_Customer', 'AcceptedCmp1', 'AcceptedCmp2', 'AcceptedCmp3',\n",
+        "                 'AcceptedCmp4', 'AcceptedCmp5', 'Response']\n",
+        "    df = df.drop(columns=drop_cols, errors='ignore')\n",
+        "\n",
+        "    if 'Year_Birth' in df.columns:\n",
+        "        df['Age'] = 2025 - df['Year_Birth']\n",
+        "        df = df.drop(columns=['Year_Birth'])\n",
+        "\n",
+        "    df = df.fillna(df.median(numeric_only=True))\n",
+        "\n",
+        "    if 'Education' in df.columns and 'Marital_Status' in df.columns:\n",
+        "        df = pd.get_dummies(df, columns=['Education', 'Marital_Status'], drop_first=True)\n",
+        "\n",
+        "    spending_cols = [c for c in df.columns if c.startswith('Mnt')]\n",
+        "    df['Total_Spending'] = df[spending_cols].sum(axis=1)\n",
+        "\n",
+        "    features = ['Age', 'Income', 'Kidhome', 'Teenhome', 'Recency', 'Complain',\n",
+        "                'NumDealsPurchases', 'NumWebPurchases', 'NumCatalogPurchases',\n",
+        "                'NumStorePurchases', 'NumWebVisitsMonth', 'Total_Spending'] + \\\n",
+        "               [c for c in df.columns if c.startswith('Education_') or c.startswith('Marital_Status_')]\n",
+        "\n",
+        "    df_features = df[features]\n",
+        "\n",
+        "    scaler = StandardScaler()\n",
+        "    scaled_features = scaler.fit_transform(df_features)\n",
+        "\n",
+        "    st.write(\"### Features after scaling\")\n",
+        "    st.dataframe(pd.DataFrame(scaled_features, columns=features).head())\n",
+        "\n",
+        "    pca = PCA(n_components=2, random_state=42)\n",
+        "    pca_features = pca.fit_transform(scaled_features)\n",
+        "\n",
+        "    st.write(f\"Explained variance by PCA components: {pca.explained_variance_ratio_}\")\n",
+        "\n",
+        "    plt.figure(figsize=(8, 6))\n",
+        "    sns.scatterplot(x=pca_features[:, 0], y=pca_features[:, 1])\n",
+        "    plt.title('PCA Scatter Plot (2 Components)')\n",
+        "    st.pyplot(plt.gcf())\n",
+        "    plt.clf()\n",
+        "    plt.close()\n",
+        "\n",
+        "    linked = linkage(scaled_features, method='ward')\n",
+        "\n",
+        "    plt.figure(figsize=(10, 5))\n",
+        "    dendrogram(linked, truncate_mode='level', p=5)\n",
+        "    plt.title('Hierarchical Clustering Dendrogram (truncated)')\n",
+        "    plt.xlabel('Sample index or cluster size')\n",
+        "    plt.ylabel('Distance')\n",
+        "    st.pyplot(plt.gcf())\n",
+        "    plt.clf()\n",
+        "    plt.close()\n",
+        "\n",
+        "    n_clusters = st.slider(\"Select number of clusters\", 2, 10, 4)\n",
+        "\n",
+        "    cluster_labels = fcluster(linked, t=n_clusters, criterion='maxclust')\n",
+        "    df['Cluster'] = cluster_labels\n",
+        "\n",
+        "    st.write(\"### Cluster counts\")\n",
+        "    st.write(df['Cluster'].value_counts().sort_index())\n",
+        "\n",
+        "    st.write(\"### Cluster summary (mean values)\")\n",
+        "    st.write(df.groupby('Cluster')[features].mean().round(2))\n",
+        "\n",
+        "    plt.figure(figsize=(8, 6))\n",
+        "    sns.scatterplot(x=pca_features[:, 0], y=pca_features[:, 1], hue=cluster_labels, palette='Set2', s=50)\n",
+        "    plt.title('PCA Scatter Plot colored by Cluster')\n",
+        "    st.pyplot(plt.gcf())\n",
+        "    plt.clf()\n",
+        "    plt.close()\n",
+        "\n",
+        "else:\n",
+        "    st.warning(\"Please upload a CSV file to proceed.\")\n",
+        "'''\n",
+        "\n",
+        "with open('app.py', 'w') as f:\n",
+        "    f.write(app_code)"
+      ],
+      "metadata": {
+        "id": "ALDsFkM5LOBp"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!pip install streamlit pyngrok\n",
+        "\n",
+        "!ngrok authtoken 2xPPNSENZTDDUcdfG4qJfmKxDR2_7oBwGYDzRVZJDAxjLS2JN\n",
+        "\n",
+        "from pyngrok import ngrok\n",
+        "\n",
+        "ngrok.kill()\n",
+        "\n",
+        "public_url = ngrok.connect(8501)\n",
+        "print(\"Streamlit app will be hosted at:\", public_url)"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "SIDKNRDtMops",
+        "outputId": "44759b0b-680a-4546-fc80-c99e0396d300"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Requirement already satisfied: streamlit in /usr/local/lib/python3.11/dist-packages (1.45.1)\n",
+            "Requirement already satisfied: pyngrok in /usr/local/lib/python3.11/dist-packages (7.2.8)\n",
+            "Requirement already satisfied: altair<6,>=4.0 in /usr/local/lib/python3.11/dist-packages (from streamlit) (5.5.0)\n",
+            "Requirement already satisfied: blinker<2,>=1.5.0 in /usr/local/lib/python3.11/dist-packages (from streamlit) (1.9.0)\n",
+            "Requirement already satisfied: cachetools<6,>=4.0 in /usr/local/lib/python3.11/dist-packages (from streamlit) (5.5.2)\n",
+            "Requirement already satisfied: click<9,>=7.0 in /usr/local/lib/python3.11/dist-packages (from streamlit) (8.2.0)\n",
+            "Requirement already satisfied: numpy<3,>=1.23 in /usr/local/lib/python3.11/dist-packages (from streamlit) (2.0.2)\n",
+            "Requirement already satisfied: packaging<25,>=20 in /usr/local/lib/python3.11/dist-packages (from streamlit) (24.2)\n",
+            "Requirement already satisfied: pandas<3,>=1.4.0 in /usr/local/lib/python3.11/dist-packages (from streamlit) (2.2.2)\n",
+            "Requirement already satisfied: pillow<12,>=7.1.0 in /usr/local/lib/python3.11/dist-packages (from streamlit) (11.2.1)\n",
+            "Requirement already satisfied: protobuf<7,>=3.20 in /usr/local/lib/python3.11/dist-packages (from streamlit) (5.29.4)\n",
+            "Requirement already satisfied: pyarrow>=7.0 in /usr/local/lib/python3.11/dist-packages (from streamlit) (18.1.0)\n",
+            "Requirement already satisfied: requests<3,>=2.27 in /usr/local/lib/python3.11/dist-packages (from streamlit) (2.32.3)\n",
+            "Requirement already satisfied: tenacity<10,>=8.1.0 in /usr/local/lib/python3.11/dist-packages (from streamlit) (9.1.2)\n",
+            "Requirement already satisfied: toml<2,>=0.10.1 in /usr/local/lib/python3.11/dist-packages (from streamlit) (0.10.2)\n",
+            "Requirement already satisfied: typing-extensions<5,>=4.4.0 in /usr/local/lib/python3.11/dist-packages (from streamlit) (4.13.2)\n",
+            "Requirement already satisfied: watchdog<7,>=2.1.5 in /usr/local/lib/python3.11/dist-packages (from streamlit) (6.0.0)\n",
+            "Requirement already satisfied: gitpython!=3.1.19,<4,>=3.0.7 in /usr/local/lib/python3.11/dist-packages (from streamlit) (3.1.44)\n",
+            "Requirement already satisfied: pydeck<1,>=0.8.0b4 in /usr/local/lib/python3.11/dist-packages (from streamlit) (0.9.1)\n",
+            "Requirement already satisfied: tornado<7,>=6.0.3 in /usr/local/lib/python3.11/dist-packages (from streamlit) (6.4.2)\n",
+            "Requirement already satisfied: PyYAML>=5.1 in /usr/local/lib/python3.11/dist-packages (from pyngrok) (6.0.2)\n",
+            "Requirement already satisfied: jinja2 in /usr/local/lib/python3.11/dist-packages (from altair<6,>=4.0->streamlit) (3.1.6)\n",
+            "Requirement already satisfied: jsonschema>=3.0 in /usr/local/lib/python3.11/dist-packages (from altair<6,>=4.0->streamlit) (4.23.0)\n",
+            "Requirement already satisfied: narwhals>=1.14.2 in /usr/local/lib/python3.11/dist-packages (from altair<6,>=4.0->streamlit) (1.39.0)\n",
+            "Requirement already satisfied: gitdb<5,>=4.0.1 in /usr/local/lib/python3.11/dist-packages (from gitpython!=3.1.19,<4,>=3.0.7->streamlit) (4.0.12)\n",
+            "Requirement already satisfied: python-dateutil>=2.8.2 in /usr/local/lib/python3.11/dist-packages (from pandas<3,>=1.4.0->streamlit) (2.9.0.post0)\n",
+            "Requirement already satisfied: pytz>=2020.1 in /usr/local/lib/python3.11/dist-packages (from pandas<3,>=1.4.0->streamlit) (2025.2)\n",
+            "Requirement already satisfied: tzdata>=2022.7 in /usr/local/lib/python3.11/dist-packages (from pandas<3,>=1.4.0->streamlit) (2025.2)\n",
+            "Requirement already satisfied: charset-normalizer<4,>=2 in /usr/local/lib/python3.11/dist-packages (from requests<3,>=2.27->streamlit) (3.4.2)\n",
+            "Requirement already satisfied: idna<4,>=2.5 in /usr/local/lib/python3.11/dist-packages (from requests<3,>=2.27->streamlit) (3.10)\n",
+            "Requirement already satisfied: urllib3<3,>=1.21.1 in /usr/local/lib/python3.11/dist-packages (from requests<3,>=2.27->streamlit) (2.4.0)\n",
+            "Requirement already satisfied: certifi>=2017.4.17 in /usr/local/lib/python3.11/dist-packages (from requests<3,>=2.27->streamlit) (2025.4.26)\n",
+            "Requirement already satisfied: smmap<6,>=3.0.1 in /usr/local/lib/python3.11/dist-packages (from gitdb<5,>=4.0.1->gitpython!=3.1.19,<4,>=3.0.7->streamlit) (5.0.2)\n",
+            "Requirement already satisfied: MarkupSafe>=2.0 in /usr/local/lib/python3.11/dist-packages (from jinja2->altair<6,>=4.0->streamlit) (3.0.2)\n",
+            "Requirement already satisfied: attrs>=22.2.0 in /usr/local/lib/python3.11/dist-packages (from jsonschema>=3.0->altair<6,>=4.0->streamlit) (25.3.0)\n",
+            "Requirement already satisfied: jsonschema-specifications>=2023.03.6 in /usr/local/lib/python3.11/dist-packages (from jsonschema>=3.0->altair<6,>=4.0->streamlit) (2025.4.1)\n",
+            "Requirement already satisfied: referencing>=0.28.4 in /usr/local/lib/python3.11/dist-packages (from jsonschema>=3.0->altair<6,>=4.0->streamlit) (0.36.2)\n",
+            "Requirement already satisfied: rpds-py>=0.7.1 in /usr/local/lib/python3.11/dist-packages (from jsonschema>=3.0->altair<6,>=4.0->streamlit) (0.24.0)\n",
+            "Requirement already satisfied: six>=1.5 in /usr/local/lib/python3.11/dist-packages (from python-dateutil>=2.8.2->pandas<3,>=1.4.0->streamlit) (1.17.0)\n",
+            "Authtoken saved to configuration file: /root/.config/ngrok/ngrok.yml\n",
+            "Streamlit app will be hosted at: NgrokTunnel: \"https://4415-35-196-91-66.ngrok-free.app\" -> \"http://localhost:8501\"\n"
+          ]
+        }
+      ]
+    }
+  ]
+}
